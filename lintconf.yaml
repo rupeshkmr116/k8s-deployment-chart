@@ -1,0 +1,21 @@
+extends: default
+ignore: |
+  gke-deployment-chart/templates/
+  gke-deployment-chart/ci/
+rules:
+  line-length:
+    max: 200
+    level: warning
+  document-start: disable
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  braces:
+    max-spaces-inside: 1
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 0

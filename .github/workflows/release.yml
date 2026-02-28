@@ -55,9 +55,12 @@ jobs:
         run: |
           if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git checkout --orphan gh-pages
-            git commit --allow-empty -m "chore: initialize gh-pages"
+            git rm -rf . >/dev/null 2>&1 || true
+            echo "# Helm chart repository" > README.md
+            git add README.md
+            git commit -m "chore: initialize gh-pages"
             git push origin gh-pages
-            git checkout "${GITHUB_SHA}"
+            git checkout -f "${GITHUB_SHA}"
           fi
 
       - name: Set up Helm
@@ -70,6 +73,7 @@ jobs:
         with:
           charts_dir: .
           config: .cr.yaml
+          skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 

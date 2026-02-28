@@ -33,7 +33,7 @@ A production-ready, security-hardened Helm chart for GKE deployments.
 Add the Helm repository:
 
 ```bash
-helm repo add gke-deployment-chart https://rupeshkmr116.github.io/k8s-deployement-chart
+helm repo add gke-deployment-chart https://rupeshkmr116.github.io/k8s-deployment-chart
 helm repo update
 ```
 

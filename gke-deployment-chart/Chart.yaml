@@ -26,11 +26,11 @@ keywords:
   - ingress
   - security
 
-home: https://github.com/rupeshkmr116/k8s-deployement-chart
+home: https://github.com/rupeshkmr116/k8s-deployment-chart
 icon: https://raw.githubusercontent.com/helm/helm/main/docs/logos/helm.svg
 
 sources:
-  - https://github.com/rupeshkmr116/k8s-deployement-chart
+  - https://github.com/rupeshkmr116/k8s-deployment-chart
 
 maintainers:
   - name: Rupesh Kumar
@@ -43,7 +43,7 @@ annotations:
     A production-ready Helm chart exclusively for Google Kubernetes Engine (GKE) deployments.
     Designed around GCP Workload Identity — pods authenticate to GCP services (Cloud SQL,
     GCS, Pub/Sub, Secret Manager, etc.) without any credential files or Secrets.
-    See full documentation at https://github.com/rupeshkmr116/k8s-deployement-chart
+    See full documentation at https://github.com/rupeshkmr116/k8s-deployment-chart
   artifacthub.io/changes: |
     - kind: added
       description: Renamed to gke-deployment-chart — explicitly GKE-only with Workload Identity focus

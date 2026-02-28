@@ -1,12 +1,14 @@
 name: Release Helm Chart
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - "gke-deployment-chart/**"
       - "artifacthub-repo.yml"
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: write

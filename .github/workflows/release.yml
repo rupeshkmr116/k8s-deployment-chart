@@ -18,7 +18,7 @@ permissions:
 jobs:
   lint-and-test:
     name: Lint & Test
-    runs-on: dhi.io/helm:4-debian13-dev
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4

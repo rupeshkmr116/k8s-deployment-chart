@@ -77,6 +77,19 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Rebuild Helm index on gh-pages
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          cr index \
+            --config .cr.yaml \
+            --owner "${GITHUB_REPOSITORY_OWNER}" \
+            --git-repo "${REPO_NAME}" \
+            --index-path . \
+            --packages-with-index \
+            --push
+
       - name: Copy ArtifactHub repo metadata to gh-pages
         run: |
           git fetch origin gh-pages || true

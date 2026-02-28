@@ -6,8 +6,8 @@ description: >
   for credential-free authentication to GCP services. Includes CloudSQL proxy,
   HPA, VPA, PDB, NetworkPolicy, RBAC, Ingress, PVC, ConfigMap, and Secret management.
 type: application
-version: 2.3.2
-appVersion: "2.3.0"
+version: 0.0.1
+appVersion: "0.0.1"
 
 keywords:
   - gke

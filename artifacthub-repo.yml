@@ -1,0 +1,9 @@
+# ArtifactHub repository metadata
+# See https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+# This file must be present at the root of the gh-pages branch.
+# Register this repo at https://artifacthub.io and paste the repositoryID below.
+repositoryID: ""   # Fill in after registering the repo on ArtifactHub
+owners:
+  - name: Rupesh Kumar
+    email: rupeshkmr116@gmail.com
+ignore: []

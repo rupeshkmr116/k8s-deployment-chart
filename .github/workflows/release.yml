@@ -56,52 +56,34 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Install chart-releaser CLI
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Package chart
+        run: helm package gke-deployment-chart/ --destination /tmp/helm-pkg
+
+      - name: Publish to gh-pages
         run: |
-          CR_VERSION="1.6.1"
-          curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/v${CR_VERSION}/chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
-          tar -xzf cr.tar.gz cr
-          sudo mv cr /usr/local/bin/cr
+          # Checkout gh-pages into a temp directory
+          git fetch origin gh-pages || true
+          git worktree add /tmp/gh-pages gh-pages 2>/dev/null || \
+            git worktree add /tmp/gh-pages --orphan gh-pages
 
-      - name: Reset gh-pages to clean Helm repo state
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          # Copy chart package
+          cp /tmp/helm-pkg/*.tgz /tmp/gh-pages/
 
-          # Package chart
-          helm package gke-deployment-chart/ --destination .cr-release-packages
+          # Regenerate index.yaml from scratch using all .tgz in gh-pages
+          helm repo index /tmp/gh-pages \
+            --url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
-          # Upload release (skip if already exists)
-          cr upload \
-            --owner "${OWNER}" \
-            --git-repo "${REPO_NAME}" \
-            --token "${CR_TOKEN}" \
-            --packages-with-index \
-            --skip-existing \
-            --push
+          # Copy ArtifactHub metadata and add .nojekyll
+          cp artifacthub-repo.yml /tmp/gh-pages/
+          touch /tmp/gh-pages/.nojekyll
 
-          # Force-reset gh-pages to clean orphan with only index.yaml + .tgz + metadata
-          git fetch origin gh-pages 2>/dev/null || true
-          git checkout --orphan gh-pages-new
-          git rm -rf . >/dev/null 2>&1 || true
-
-          # Generate index.yaml into current (empty) directory
-          cr index \
-            --owner "${OWNER}" \
-            --git-repo "${REPO_NAME}" \
-            --token "${CR_TOKEN}" \
-            --index-path index.yaml \
-            --packages-with-index
-
-          # Add artifacthub metadata
-          cp artifacthub-repo.yml . 2>/dev/null || true
-          touch .nojekyll
-
-          git add index.yaml artifacthub-repo.yml .nojekyll 2>/dev/null || true
-          git add "*.tgz" 2>/dev/null || true
-          git commit -m "chore: publish Helm index"
-
-          # Force-push as gh-pages
-          git push origin gh-pages-new:gh-pages --force
+          # Commit and push
+          cd /tmp/gh-pages
+          git add index.yaml *.tgz artifacthub-repo.yml .nojekyll
+          git diff --cached --quiet || git commit -m "chore: release ${{ github.ref_name }}"
+          git push origin gh-pages

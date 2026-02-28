@@ -72,8 +72,6 @@ rbac:
   #     resources: ["configmaps"]
   #     verbs: ["get", "list"]
 
-
-
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations: {}
@@ -107,7 +105,7 @@ podSecurityContext:
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
@@ -229,7 +227,7 @@ hpa:
   external:
     enabled: false
     #name: queue_messages_ready
-    #matchLabels: 
+    #matchLabels:
     #  resource.labels.project_id: my-gcp-project
     #  resource.labels.url_map_name: my-ingress-url-map
     #averageValue: 30
@@ -262,13 +260,10 @@ vpa:
 #    enabled: true
 #    metric:
 #      name: queue_messages_ready
-#      matchLabels: 
+#      matchLabels:
 #        resource.labels.project_id: my-gcp-project
 #        resource.labels.url_map_name: my-ingress-url-map
 #      averageValue: 30
-
-
-
 
 # Additional volumes on the output Deployment definition.
 volumes: []
@@ -328,7 +323,7 @@ configmap: {}
 
 # this is for setting up a secret more information can be found here: https://kubernetes.io/docs/concepts/configuration/secret/
 secret: {}
-# secret: 
+# secret:
 #   enabled: true
 #   # Option: Load many env-style secrets from a file (KEY=VALUE per line).
 #   # This creates keys in <release>-<name>-secret and also injects them as env vars.

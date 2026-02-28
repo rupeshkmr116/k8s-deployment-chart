@@ -1,0 +1,14 @@
+{{- if .Values.configmap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-config
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.configmap }}
+  {{- if and (ne $key "enabled") (kindIs "string" $value) }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

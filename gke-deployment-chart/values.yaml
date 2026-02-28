@@ -1,0 +1,452 @@
+# Default values for gke-deployment-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This is for setting the name override for the deployment more information can be found here: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#overriding-the-name-of-an-object
+nameOverride: ""
+# nameOverride: "my-app"
+
+# This is for setting the fullname override for the deployment more information can be found here: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#overriding-the-name-of-an-object
+# (recommended to use this)
+fullnameOverride: ""
+# fullnameOverride: "my-app"
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# Deployment strategy configuration more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment
+strategy: {}
+# strategy:
+#   type: RollingUpdate
+#   rollingUpdate:
+#     maxUnavailable: 0
+#     maxSurge: 1
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: nginx
+  # This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  # Set to false when using GKE Workload Identity — credentials are injected by the GKE
+  # metadata server and the default SA token is not needed.
+  automount: false
+  # Annotations to add to the service account.
+  # GKE Workload Identity: add the iam.gke.io/gcp-service-account annotation to bind
+  # this Kubernetes SA to a GCP Service Account.
+  # Prerequisites:
+  #   1. GKE cluster must have Workload Identity enabled (--workload-pool=PROJECT_ID.svc.id.goog)
+  #   2. Node pool must use GKE_METADATA (--workload-metadata=GKE_METADATA)
+  #   3. Run the IAM binding command BEFORE deploying:
+  #        gcloud iam service-accounts add-iam-policy-binding GSA_EMAIL \
+  #          --project=PROJECT_ID \
+  #          --role=roles/iam.workloadIdentityUser \
+  #          --member="serviceAccount:PROJECT_ID.svc.id.goog[NAMESPACE/KSA_NAME]"
+  annotations: {}
+  # annotations:
+  #   iam.gke.io/gcp-service-account: my-app-sa@my-gcp-project.iam.gserviceaccount.com
+
+  # If not set and create is true, a name is generated using the fullname template.
+  # This name must match the KSA_NAME used in the gcloud IAM binding command above.
+  name: ""
+
+# This is for setting up rbac more information can be found here: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+# RBAC follows least privilege principle - only grants necessary permissions
+rbac:
+  create: true
+  # Additional rules can be added here for custom permissions
+  # rules:
+  #   - apiGroups: [""]
+  #     resources: ["configmaps"]
+  #     verbs: ["get", "list"]
+
+
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+# podAnnotations:
+#   prometheus.io/scrape: "true"
+#   prometheus.io/port: "9090"
+
+
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+# podLabels:
+#   app.kubernetes.io/name: my-app
+#   app.kubernetes.io/instance: my-app
+#   app.kubernetes.io/version: 1.0.0
+#   app.kubernetes.io/component: backend
+#   app.kubernetes.io/part-of: my-platform
+#   app.kubernetes.io/managed-by: Helm
+
+# this is for setting up the security context for the pod more information can be found here: https://kubernetes.io/docs/concepts/security/pod-security-context/
+# Security best practices: runAsNonRoot, fsGroup, seccompProfile
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context - applies to main application container
+# Security best practices: drop ALL capabilities, readOnlyRootFilesystem, allowPrivilegeEscalation: false
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+
+# Optional security hardening defaults (opt-in).
+# Applied only when podSecurityContext/securityContext are empty.
+securityHardening:
+  enabled: false
+  # Recommended pod-level defaults (adjust runAsUser to match your image)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # Recommended container-level defaults
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: "ClusterIP"
+  # type: NodePort
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  targetPort: 80
+  # This sets the app label for service selector matching (e.g., "ui-common")
+  # When set, both pods and service selector will include: app: <value>
+  appLabel: ""
+  # appLabel: "ui-common"
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: true
+  # this is for setting up the ingress class more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  # Supports all ingress controllers: nginx, gce, aws, traefik, etc.
+  className: ""
+  # Whether to set spec.ingressClassName.
+  # Note: For GCE (`className: gce` / `gce-internal`) this chart intentionally does NOT set spec.ingressClassName
+  # and relies on the legacy annotation `kubernetes.io/ingress.class` for compatibility.
+  useIngressClassName: true
+  # Require TLS when ingress is enabled (or use ingress.gce.certMap for GCE)
+  requireTls: false
+  # className: "gce"    # For Google Cloud Load Balancer
+  # className: "aws"     # For AWS ALB Ingress Controller
+  # className: "traefik" # For Traefik Ingress Controller
+  port: 80
+  # GCE / Google HTTPS Load Balancer specific settings (optional)
+  gce:
+    # Reference a Certificate Manager certificate map (Google-managed + self-managed certs)
+    # When set, the chart will:
+    # - add annotation: networking.gke.io/certmap: <certMap>
+    # - NOT render spec.tls (no Kubernetes TLS secrets)
+    certMap: ""
+  # this is for setting up the annotations for the ingress more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/#annotations
+  annotations: {}
+    # annotations:
+    #   kubernetes.io/ingress.allow-http: "true"
+    #   kubernetes.io/tls-acme: "true"
+    #   cloud.google.com/neg: '{"ingress": true}'
+  # this is for setting up the hosts for the ingress more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+  hosts:
+    - host: app.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+          # Optional: override backend per-path (otherwise defaults to this chart's Service + ingress.port)
+          # backend:
+          #   service:
+          #     name: my-service
+          #     port:
+          #       number: 80
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - app.example.com
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+hpa:
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 90
+  external:
+    enabled: false
+    #name: queue_messages_ready
+    #matchLabels: 
+    #  resource.labels.project_id: my-gcp-project
+    #  resource.labels.url_map_name: my-ingress-url-map
+    #averageValue: 30
+# Vertical Pod Autoscaler (VPA)
+vpa:
+  enabled: false
+  # Update modes: "Off", "Initial", "Auto"
+  updateMode: "Off"
+  # Optional: customize resource policies per container
+  resourcePolicy:
+    # containerPolicies:
+    #   - containerName: "*"
+    #     minAllowed:
+    #       cpu: "100m"
+    #       memory: "256Mi"
+    #     maxAllowed:
+    #       cpu: "2"
+    #       memory: "4Gi"
+    #     controlledResources:
+    #       - "cpu"
+    #       - "memory"
+#example
+#hpa:
+#  autoscaling:
+#    enabled: true
+#    minReplicas: 1
+#    maxReplicas: 100
+#    targetCPUUtilizationPercentage: 80
+#  external:
+#    enabled: true
+#    metric:
+#      name: queue_messages_ready
+#      matchLabels: 
+#        resource.labels.project_id: my-gcp-project
+#        resource.labels.url_map_name: my-ingress-url-map
+#      averageValue: 30
+
+
+
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+# this is for setting up a node selector more information can be found here: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+nodeSelector: {}
+# nodeSelector:
+#   cloud.google.com/gke-nodepool: spot-instance
+
+
+# this is for setting up a toleration more information can be found here: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+tolerations: []
+# tolerations:
+#   - key: "key"
+#     operator: "Equal"
+#     value: "value"
+#     effect: "NoSchedule"
+
+# this is for setting up a affinity more information can be found here: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+affinity: {}
+# affinity:
+#   nodeAffinity:
+#     required:
+#       nodeSelectorTerm:
+#         - matchExpressions:
+#           - key: "key"
+#             operator: "Equal"
+#             values: ["value"]
+
+# Schedule pods across nodes (avoid all replicas on one node)
+podAntiAffinity:
+  enabled: true
+  # topologyKey: "kubernetes.io/hostname"
+# This is for setting up direct environment variables more information can be found here: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
+env: {}
+# env:
+#   ENV_VAR_NAME: "value"
+#   ANOTHER_VAR: "another-value"
+#   DATABASE_URL: "postgresql://localhost:5432/mydb"
+
+# this is for setting up a configmap more information can be found here: https://kubernetes.io/docs/concepts/configuration/configmap/
+configmap: {}
+# configmap:
+#   enabled: true
+#    name: configmap-key
+#    value: configmap-value
+
+# this is for setting up a secret more information can be found here: https://kubernetes.io/docs/concepts/configuration/secret/
+secret: {}
+# secret: 
+#   enabled: true
+#   # Option: Load many env-style secrets from a file (KEY=VALUE per line).
+#   # This creates keys in <release>-<name>-secret and also injects them as env vars.
+#   #
+#   # For LOCAL charts (file inside chart directory), pass it via --set-file:
+#   #   helm upgrade --install <release> ./deployment-chart -f values.yaml \
+#   #     --set-file 'secret.fromFile=./secret.env'
+#   #
+#   # For REMOTE charts or files OUTSIDE chart directory, also use --set-file:
+#   #   helm upgrade --install <release> <chart> -f values.yaml \
+#   #     --set-file 'secret.fromFile=/path/to/secret.env'
+#   #
+#   # Example secret.env:
+#   #   DB_PASSWORD=supersecret
+#   #   API_KEY=abc123==     # values may contain '='
+#   #   # comments are ignored
+#   fromFile: ""
+#   inline:
+#     secret-key: secret-value
+#   # Secrets Settings - creates JSON files from key-value pairs (base64 encoded)
+#   settings: {}
+#   # settings:
+#   #   app: "{}"
+#   #   db: "{}"
+#   # Mount path for settings files (default: /var/secrets/settings)
+#   settingsMountPath: "/var/secrets/settings"
+#   # Secrets Files - creates files with specified extensions (base64 encoded)
+#   files: {}
+#   # Option 1: For LOCAL charts (file in chart directory):
+#   # files:
+#   #   service-account:
+#   #     value: "service-key"  # File path relative to chart directory
+#   #     extension: "json"
+#   #     envVar: "CREDENTIALS_FILE"
+#   # Option 2: For REMOTE charts or files OUTSIDE chart directory:
+#   # Use --set-file flag during helm install/upgrade:
+#   #   helm install my-release ./chart -f values.yaml \
+#   #     --set-file 'secret.files.service-account.value=./value'
+#   # Or provide content directly in values.yaml:
+#   # files:
+#   #   service-account:
+#   #     value: |
+#   #       {
+#   #         "type": "service_account",
+#   #         "project_id": "your-project-id",
+#   #         "private_key": "..."
+#   #       }
+#   #     extension: "json"
+#   #     envVar: "CREDENTIALS_FILE"  # Optional: sets environment variable pointing to mounted file
+#   #   client:
+#   #     value: "{}"
+#   #     extension: "json"
+#   #   # Mount path for files (default: /var/secrets/files)
+#   #   filesMountPath: "/var/secrets/files"
+#   #   # Default mode for files (optional, e.g., 0755)
+#   #   filesDefaultMode: 0755
+
+# this is for setting up a pvc more information can be found here: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+pvc: {}
+#   enabled: true
+#   accessMode: ReadWriteOnce
+#   size: 1Gi # This is the size of the pvc
+#   storageClassName: standard # This is the storage class name
+#   annotations: {}
+#   labels: {}
+#   selector: {}
+#   dataSource: {}
+
+# this is for setting up a cloudsql proxy more information can be found here: https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine
+
+cloudsql: {}
+# cloudsql:
+#   enabled: false
+#   image:
+#     tag: "latest"
+#   instanceConnectionName: ""
+#   privateIp:
+#     enabled: false
+#   auto-iam-authn:
+#     enabled: false
+#   port: 3306
+#   resources: {}
+#   securityContext: {}
+# This is for setting up Pod Disruption Budget more information can be found here: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+pdb:
+  enabled: false
+  # minAvailable: 1  # Use either minAvailable or maxUnavailable, not both
+  # maxUnavailable: 0  # Use either minAvailable or maxUnavailable, not both
+
+# Network Policy for network security - restricts pod-to-pod communication
+# More information: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+networkPolicy:
+  enabled: false
+  # When true and ingress/egress are not specified, deny all traffic by default.
+  defaultDeny: false
+  # policyTypes: ["Ingress", "Egress"]
+  # ingress:
+  #   - from:
+  #     - namespaceSelector:
+  #         matchLabels:
+  #           name: allowed-namespace
+  #     ports:
+  #     - protocol: TCP
+  #       port: 80
+  # egress:
+  #   - to:
+  #     - namespaceSelector:
+  #         matchLabels:
+  #           name: allowed-namespace
+  #     ports:
+  #     - protocol: TCP
+  #       port: 443
+
+# Pod Security Standards - Kubernetes security standards
+# More information: https://kubernetes.io/docs/concepts/security/pod-security-standards/
+podSecurityStandards:
+  # Enforce Pod Security Standards at namespace level
+  # Options: "restricted", "baseline", "privileged"
+  enforce: ""
+  # audit: "restricted"
+  # warn: "restricted"

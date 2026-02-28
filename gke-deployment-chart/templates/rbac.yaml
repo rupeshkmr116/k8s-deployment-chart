@@ -1,0 +1,53 @@
+{{- if and .Values.serviceAccount.create .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-role
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+rules:
+  # Least privilege: Only grant access to specific secrets created by this chart
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames:
+      - {{ include "gke-deployment-chart.fullname" . }}-secret
+      {{- if .Values.secret.enabled }}
+      {{- if .Values.secret.settings }}
+      - {{ include "gke-deployment-chart.fullname" . }}-secrets-settings
+      {{- end }}
+      {{- if .Values.secret.files }}
+      - {{ include "gke-deployment-chart.fullname" . }}-secrets-files
+      {{- end }}
+      {{- end }}
+  # Allow reading ConfigMap if enabled
+  {{- if .Values.configmap.enabled }}
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+    resourceNames:
+      - {{ include "gke-deployment-chart.fullname" . }}-config
+  {{- end }}
+  # Additional custom rules from values
+  {{- if .Values.rbac.rules }}
+  {{- toYaml .Values.rbac.rules | nindent 2 }}
+  {{- end }}
+{{- end }}
+
+---
+{{- if and .Values.serviceAccount.create .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-binding
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "gke-deployment-chart.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "gke-deployment-chart.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

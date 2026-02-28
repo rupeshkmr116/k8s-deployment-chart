@@ -1,0 +1,238 @@
+{{- $podSec := .Values.podSecurityContext | default dict -}}
+{{- $containerSec := .Values.securityContext | default dict -}}
+{{- if and .Values.securityHardening.enabled (eq (len $podSec) 0) -}}
+{{- $podSec = (.Values.securityHardening.podSecurityContext | default dict) -}}
+{{- end -}}
+{{- if and .Values.securityHardening.enabled (eq (len $containerSec) 0) -}}
+{{- $containerSec = (.Values.securityHardening.containerSecurityContext | default dict) -}}
+{{- end -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gke-deployment-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "gke-deployment-chart.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "gke-deployment-chart.serviceAccountName" . }}
+      {{- if $podSec }}
+      securityContext:
+        {{- toYaml $podSec | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "gke-deployment-chart.name" . }}
+          {{- if $containerSec }}
+          securityContext:
+            {{- toYaml $containerSec | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+
+          {{- if or .Values.env .Values.configmap.enabled (and .Values.secret.enabled .Values.secret.fromFile) (and .Values.secret.enabled .Values.secret.inline) (and .Values.secret.enabled .Values.secret.files) }}
+          env:
+            {{- if .Values.env }}
+            # Direct environment variables
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .Values.configmap.enabled }}
+            # ConfigMap entries
+            {{- range $key, $value := .Values.configmap }}
+            {{- if and (ne $key "enabled") (kindIs "string" $value) }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "gke-deployment-chart.fullname" $ }}-config
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .Values.secret.enabled }}
+            # Secret entries
+            {{- if .Values.secret.fromFile }}
+            {{- $fileContent := .Values.secret.fromFile }}
+            {{- range $line := (splitList "\n" $fileContent) }}
+              {{- $t := (trim $line) }}
+              {{- if and $t (not (hasPrefix "#" $t)) (contains "=" $t) }}
+                {{- $kv := splitList "=" $t }}
+                {{- if ge (len $kv) 2 }}
+                  {{- $k := (index $kv 0 | trim) }}
+            - name: {{ $k }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gke-deployment-chart.fullname" $ }}-secret
+                  key: {{ $k }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.secret.inline }}
+            {{- range $key, $value := .Values.secret.inline }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gke-deployment-chart.fullname" $ }}-secret
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if and .Values.secret.enabled .Values.secret.files }}
+            # File environment variables
+            {{- $mountPath := .Values.secret.filesMountPath | default "/var/secrets/files" }}
+            {{- range $key, $val := .Values.secret.files }}
+              {{- if $val.envVar }}
+            - name: {{ $val.envVar }}
+              value: {{ printf "%s/%s.%s" $mountPath $key $val.extension | quote }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.volumeMounts .Values.secret.settings .Values.secret.files }}
+          volumeMounts:
+            {{- if .Values.secret.settings }}
+            - name: secrets-settings
+              mountPath: {{ .Values.secret.settingsMountPath | default "/var/secrets/settings" }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.secret.files }}
+            - name: secrets-files
+              mountPath: {{ .Values.secret.filesMountPath | default "/var/secrets/files" }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+
+      {{- if .Values.cloudsql.enabled }}
+        {{- $cloudsql := (.Values.cloudsql | default dict) }}
+        {{- $cloudsqlPrivateIp := ($cloudsql.privateIp | default dict) }}
+        {{- $cloudsqlPort := ($cloudsql.port | default 3306) }}
+        {{- $cloudsqlInstance := ($cloudsql.instanceConnectionName | default "") }}
+        {{- if not $cloudsqlInstance }}
+        {{- fail "cloudsql.enabled=true requires cloudsql.instanceConnectionName" }}
+        {{- end }}
+        - name: cloud-sql-proxy
+          {{ $cloudsqlImage := (.Values.cloudsql.image | default dict) }}
+          {{ $cloudsqlRepo := ($cloudsqlImage.repository | default "gcr.io/cloud-sql-connectors/cloud-sql-proxy") }}
+          {{ $cloudsqlTag := ($cloudsqlImage.tag | default "latest") }}
+          image: "{{ $cloudsqlRepo }}:{{ $cloudsqlTag }}"
+          args:
+            {{- if $cloudsqlPrivateIp.enabled }}  
+            - "--private-ip"
+            {{- end }}
+            {{- $autoIamAuthn := (index .Values.cloudsql "auto-iam-authn") | default dict -}}
+            {{- if $autoIamAuthn.enabled }}
+            - "--auto-iam-authn"
+            {{- end }}
+            - "--structured-logs"
+            - "--port={{ $cloudsqlPort }}"
+            - "{{ $cloudsqlInstance }}"
+          {{- if .Values.cloudsql.resources }}
+          resources:
+            {{- toYaml .Values.cloudsql.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.cloudsql.securityContext }}
+          securityContext:
+            {{- toYaml .Values.cloudsql.securityContext | nindent 12 }}
+          {{- end }}
+      {{- end }}
+
+      {{- if or .Values.volumes .Values.pvc.enabled .Values.secret.settings .Values.secret.files }}
+      volumes:
+        {{- if .Values.secret.settings }}
+        - name: secrets-settings
+          secret:
+            secretName: {{ include "gke-deployment-chart.fullname" . }}-secrets-settings
+        {{- end }}
+        {{- if .Values.secret.files }}
+        - name: secrets-files
+          secret:
+            secretName: {{ include "gke-deployment-chart.fullname" . }}-secrets-files
+            {{- if .Values.secret.filesDefaultMode }}
+            defaultMode: {{ .Values.secret.filesDefaultMode }}
+            {{- end }}
+        {{- end }}
+        {{- if .Values.volumes }}
+        {{- toYaml .Values.volumes | nindent 8 }}
+        {{- end }}
+        {{- if .Values.pvc.enabled }}
+        - name: {{ include "gke-deployment-chart.fullname" . }}-pvc
+          persistentVolumeClaim:
+            claimName: {{ include "gke-deployment-chart.fullname" . }}-pvc
+        {{- end }}
+      {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- else if .Values.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  {{- include "gke-deployment-chart.selectorLabels" . | nindent 18 }}
+              topologyKey: {{ .Values.podAntiAffinity.topologyKey | default "kubernetes.io/hostname" | quote }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

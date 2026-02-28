@@ -1,0 +1,57 @@
+apiVersion: v2
+name: gke-deployment-chart
+description: >
+  A production-ready, security-hardened Helm chart exclusively for Google Kubernetes
+  Engine (GKE) deployments. Built around GCP Workload Identity (KSA↔GSA binding)
+  for credential-free authentication to GCP services. Includes CloudSQL proxy,
+  HPA, VPA, PDB, NetworkPolicy, RBAC, Ingress, PVC, ConfigMap, and Secret management.
+type: application
+version: 2.3.2
+appVersion: "2.3.0"
+
+keywords:
+  - gke
+  - gcp
+  - google-kubernetes-engine
+  - workload-identity
+  - cloudsql
+  - kubernetes
+  - helm
+  - deployment
+  - hpa
+  - vpa
+  - pdb
+  - networkpolicy
+  - rbac
+  - ingress
+  - security
+
+home: https://github.com/rupeshkmr116/k8s-deployement-chart
+icon: https://raw.githubusercontent.com/helm/helm/main/docs/logos/helm.svg
+
+sources:
+  - https://github.com/rupeshkmr116/k8s-deployement-chart
+
+maintainers:
+  - name: Rupesh Kumar
+    url: https://github.com/rupeshkmr116
+
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/readme: |
+    # gke-deployment-chart
+    A production-ready Helm chart exclusively for Google Kubernetes Engine (GKE) deployments.
+    Designed around GCP Workload Identity — pods authenticate to GCP services (Cloud SQL,
+    GCS, Pub/Sub, Secret Manager, etc.) without any credential files or Secrets.
+    See full documentation at https://github.com/rupeshkmr116/k8s-deployement-chart
+  artifacthub.io/changes: |
+    - kind: added
+      description: Renamed to gke-deployment-chart — explicitly GKE-only with Workload Identity focus
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+    - url: https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
+  artifacthub.io/signKey: |
+    fingerprint: ""
+    url: ""

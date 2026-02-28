@@ -1,0 +1,92 @@
+{{- if .Values.ingress.enabled -}}
+{{- $defaultSvcName := printf "%s-service" (include "gke-deployment-chart.fullname" .) -}}
+{{- $certMap := "" -}}
+{{- if and .Values.ingress.gce (hasKey .Values.ingress.gce "certMap") -}}
+{{- $certMap = (.Values.ingress.gce.certMap | default "") -}}
+{{- end -}}
+{{- $ingClass := (.Values.ingress.className | default "") -}}
+{{- $useIngressClassName := (ne (toString (.Values.ingress.useIngressClassName | default "true")) "false") -}}
+{{- if $certMap -}}
+{{- if not (or (eq $ingClass "gce") (eq $ingClass "gce-internal")) -}}
+{{- fail "ingress.gce.certMap requires ingress.className to be 'gce' or 'gce-internal' (GCE controller)" -}}
+{{- end -}}
+{{- end -}}
+{{- if and .Values.ingress.requireTls (not $certMap) (not .Values.ingress.tls) -}}
+{{- fail "ingress.requireTls=true requires ingress.tls (or ingress.gce.certMap for GCE)." -}}
+{{- end -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-ingress
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+  {{- if or .Values.ingress.annotations .Values.ingress.className $certMap }}
+  annotations:
+    {{- if .Values.ingress.annotations }}
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    {{- end }}
+    {{- if $certMap }}
+    networking.gke.io/certmap: {{ $certMap | quote }}
+    {{- end }}
+    {{- if .Values.ingress.className }}
+    {{- /* Legacy annotation for backward compatibility with older ingress controllers */}}
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- /* GCE controller often requires legacy annotation; avoid ingressClassName for gce/gce-internal */ -}}
+  {{- if and $ingClass $useIngressClassName (not (or (eq $ingClass "gce") (eq $ingClass "gce-internal"))) }}
+  ingressClassName: {{ $ingClass | quote }}
+  {{- end }}
+  {{- if and (not $certMap) .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    {{- if not .paths }}
+    {{- fail (printf "ingress.hosts[].paths is required for host %s" (.host | default "<empty>")) }}
+    {{- end }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- with .pathType }}
+            pathType: {{ . }}
+            {{- end }}
+            backend:
+              service:
+                {{- $svcName := $defaultSvcName -}}
+                {{- $portNumber := $.Values.ingress.port -}}
+                {{- $portName := "" -}}
+                {{- if and .backend .backend.service }}
+                  {{- if .backend.service.name }}
+                    {{- $svcName = .backend.service.name -}}
+                  {{- end }}
+                  {{- if .backend.service.port }}
+                    {{- /* Support port as: {number: 80} or {name: http} */ -}}
+                    {{- if hasKey .backend.service.port "number" }}
+                      {{- $portNumber = .backend.service.port.number -}}
+                    {{- end }}
+                    {{- if hasKey .backend.service.port "name" }}
+                      {{- $portName = .backend.service.port.name -}}
+                    {{- end }}
+                  {{- end }}
+                {{- end }}
+                name: {{ $svcName | quote }}
+                port:
+                  {{- if $portName }}
+                  name: {{ $portName | quote }}
+                  {{- else }}
+                  number: {{ $portNumber }}
+                  {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}

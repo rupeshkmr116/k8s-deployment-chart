@@ -1,0 +1,49 @@
+{{- $autoscaling := .Values.hpa.autoscaling -}}
+{{- $external := .Values.hpa.external -}}
+{{- if and .Values.autoscaling .Values.autoscaling.enabled }}
+{{- $autoscaling = .Values.autoscaling -}}
+{{- if .Values.autoscaling.external }}
+{{- $external = .Values.autoscaling.external -}}
+{{- end }}
+{{- end }}
+{{- if $autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-hpa
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "gke-deployment-chart.fullname" . }}
+  minReplicas: {{ $autoscaling.minReplicas }}
+  maxReplicas: {{ $autoscaling.maxReplicas }}
+  metrics:
+    {{- if $autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if $external.enabled }}
+    - type: External
+      external:
+        metric:
+          name: "{{ $external.name | default "loadbalancing.googleapis.com/https/request_count" }}"
+          {{- with $external.matchLabels }}
+          {{- $labels := . -}}
+          {{- $acc := dict "list" (list) -}}
+          {{- range $k, $v := $labels }}
+          {{- $_ := set $acc "list" (append ($acc.list) (printf "%s=%s" $k $v)) -}}
+          {{- end }}
+          selector: "{{ join "," $acc.list }}"
+          {{- end }}
+        target:
+          type: AverageValue
+          averageValue: "{{ $external.averageValue | default 30 }}"
+    {{- end }}
+{{- end }}

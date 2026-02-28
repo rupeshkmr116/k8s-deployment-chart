@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-service
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+  {{- if .Values.ingress.enabled }}
+  annotations:
+    cloud.google.com/backend-config: '{"default": "csp-backendconfig"}'
+  {{- end }}
+spec:
+  type: {{ if .Values.ingress.enabled }}NodePort{{ else }}{{ .Values.service.type | default "ClusterIP" }}{{ end }}
+  ports:
+    - port: {{ .Values.ingress.port | default 80 }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "gke-deployment-chart.selectorLabels" . | nindent 4 }}
+

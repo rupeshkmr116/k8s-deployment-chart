@@ -1,0 +1,24 @@
+{{- if .Values.pdb.enabled }}
+{{- $hasMin := hasKey .Values.pdb "minAvailable" -}}
+{{- $hasMax := hasKey .Values.pdb "maxUnavailable" -}}
+{{- if not (or $hasMin $hasMax) }}
+{{- fail "pdb: set one of minAvailable or maxUnavailable when enabled" }}
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "gke-deployment-chart.fullname" . }}-pdb
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+spec:
+  {{- /* If both are set, prefer minAvailable and ignore maxUnavailable to avoid template failure */ -}}
+  {{- if $hasMin }}
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  {{- else if $hasMax }}
+  maxUnavailable: {{ .Values.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gke-deployment-chart.selectorLabels" . | nindent 6 }}
+{{- end }}
+

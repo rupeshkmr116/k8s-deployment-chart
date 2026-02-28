@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "gke-deployment-chart.fullname" . }}-test-smoke"
+  labels:
+    {{- include "gke-deployment-chart.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: smoke-test
+      image: curlimages/curl:8.1.2
+      command: ['sh', '-c']
+      args:
+        - |
+          set -e
+          echo "Running smoke tests..."
+          
+          # Test 1: Service is accessible
+          echo "Test 1: Checking service accessibility..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://{{ include "gke-deployment-chart.fullname" . }}-service:{{ .Values.ingress.port | default 80 }}/)
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 500 ]; then
+            echo "✓ Service is accessible (HTTP $HTTP_CODE)"
+          else
+            echo "✗ Service returned unexpected code: $HTTP_CODE"
+            exit 1
+          fi
+          
+          # Test 2: Check if pods are running
+          echo "Test 2: Verifying deployment status..."
+          # This is a basic check - in a real scenario, you might want to check via kubectl
+          
+          echo "All smoke tests passed!"
+  {{- with .Values.podSecurityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+

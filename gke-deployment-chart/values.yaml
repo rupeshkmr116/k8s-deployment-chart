@@ -337,8 +337,8 @@ secret: {}
 #   #     --set-file 'secret.fromFile=/path/to/secret.env'
 #   #
 #   # Example secret.env:
-#   #   DB_PASSWORD=supersecret
-#   #   API_KEY=abc123==     # values may contain '='
+#   #   DB_PASSWORD=""
+#   #   API_KEY= ""     # values may contain '='
 #   #   # comments are ignored
 #   fromFile: ""
 #   inline:

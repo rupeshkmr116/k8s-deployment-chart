@@ -89,6 +89,17 @@ The following table lists the key configurable parameters and their defaults.
 
 See [values.yaml](gke-deployment-chart/values.yaml) for all available parameters and their documentation.
 
+## Artifact Hub publishing checklist (owner: `rupesh1050`)
+
+If Artifact Hub cannot validate ownership or ingest updates, verify these exact items:
+
+1. `artifacthub-repo.yml` is committed in the **root of your `gh-pages` branch**.
+2. `repositoryID` in `artifacthub-repo.yml` is set to the ID shown in Artifact Hub for your repository.
+3. The owner email in `artifacthub-repo.yml` matches the email used by your Artifact Hub account (`rupeshkmr116@gmail.com`).
+4. `index.yaml` exists and is reachable at:
+   `https://rupeshkmr116.github.io/k8s-deployment-chart/index.yaml`
+5. The chart package tarball is reachable from that `index.yaml`.
+
 ## GKE Workload Identity
 
 This chart is built around [GKE Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity), the recommended way to give GKE workloads access to GCP APIs without managing service account key files.

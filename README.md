@@ -100,21 +100,6 @@ If Artifact Hub cannot validate ownership or ingest updates, verify these exact 
    `https://rupeshkmr116.github.io/k8s-deployment-chart/index.yaml`
 5. The chart package tarball is reachable from that `index.yaml`.
 
-If it still does not show up on Artifact Hub:
-
-6. Open Artifact Hub → your repository → **Check repository** to trigger an immediate reindex.
-7. Confirm your GitHub Pages site is enabled and serving the branch where `artifacthub-repo.yml` and `index.yaml` exist.
-8. Wait 5–15 minutes after reindex; Artifact Hub indexing is not always instant.
-
-Recommended packaging flow (avoid committing binary `.tgz` files to this source branch):
-
-```bash
-helm package gke-deployment-chart
-helm repo index . --url https://github.com/rupeshkmr116/k8s-deployment-chart/releases/download/v0.0.1
-```
-
-Upload the generated `.tgz` to the matching GitHub Release tag (`v0.0.1`), then push the updated `index.yaml`.
-
 ## GKE Workload Identity
 
 This chart is built around [GKE Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity), the recommended way to give GKE workloads access to GCP APIs without managing service account key files.

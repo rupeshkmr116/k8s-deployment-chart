@@ -2,7 +2,8 @@
 # See https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
 # This file must be present at the root of the gh-pages branch.
 # Register this repo at https://artifacthub.io and paste the repositoryID below.
-repositoryID: ""   # Fill in after registering the repo on ArtifactHub
+# IMPORTANT: This ID is required for ownership verification and publishing updates.
+repositoryID: "28b9f93a-6318-414a-ad18-023961daf143"
 owners:
   - name: Rupesh Kumar
     email: rupeshkmr116@gmail.com
